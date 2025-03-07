@@ -90,54 +90,63 @@ fuzzylink <- function(dfA, dfB,
                                parallel = parallel)
 
   ## Step 2: Get similarity matrix within each block ------------
-  if(verbose){
-    cat('Computing similarity matrix (',
-        format(Sys.time(), '%X'),
-        ')\n\n', sep = '')
-  }
+if(verbose){
+  cat('Computing similarity matrix (',
+      format(Sys.time(), '%X'),
+      ')\n\n', sep = '')
+}
+
+if(parallel) {
+  # For clusters, create a proper cluster object
+  n_cores <- min(parallel::detectCores() - 1, nrow(blocks))
+  cl <- parallel::makeCluster(n_cores)
+  
+  # Export necessary variables and functions to all workers
+  parallel::clusterExport(cl, c("embeddings", "by", "blocking.variables", "dfA", "dfB", "blocks", "get_similarity_matrix"))
+  
+  # Replace the sequential loop with parallel execution
+  sim <- parallel::parLapply(cl, 1:nrow(blocks), function(i) {
+    if(!is.null(blocking.variables)) {
+      subset_A <- mapply(`==`, dfA[, blocking.variables, drop=FALSE], blocks[i,]) |> apply(1, all)
+      block_A <- dfA[subset_A, ]
+      subset_B <- mapply(`==`, dfB[, blocking.variables, drop=FALSE], blocks[i,]) |> apply(1, all)
+      block_B <- dfB[subset_B, ]
+      if(nrow(block_A) == 0 | nrow(block_B) == 0) {
+        return(NA)
+      }
+    } else {
+      block_A <- dfA
+      block_B <- dfB
+    }
+    
+    strings_A <- unique(block_A[[by]])
+    strings_B <- unique(block_B[[by]])
+    return(get_similarity_matrix(embeddings, strings_A, strings_B))
+  })
+  
+  parallel::stopCluster(cl)
+} else {
+  # Original sequential code
   sim <- list()
   for(i in 1:nrow(blocks)){
-
     if(!is.null(blocking.variables)){
-
-      # if(verbose){
-      #   cat('Block ', i, ' of ', nrow(blocks), ':\n', sep = '')
-      #   print(data.frame(blocks[i,]))
-      #   cat('\n')
-      # }
-
-      # subset the data for each block from dfA and dfB
-      subset_A <- mapply(`==`,
-                         dfA[, blocking.variables,drop=FALSE],
-                         blocks[i,]) |>
-        apply(1, all)
+      subset_A <- mapply(`==`, dfA[, blocking.variables,drop=FALSE], blocks[i,]) |> apply(1, all)
       block_A <- dfA[subset_A, ]
-
-      subset_B <- mapply(`==`,
-                         dfB[, blocking.variables,drop=FALSE],
-                         blocks[i,]) |>
-        apply(1, all)
+      subset_B <- mapply(`==`, dfB[, blocking.variables,drop=FALSE], blocks[i,]) |> apply(1, all)
       block_B <- dfB[subset_B, ]
-
-      # if you can't find any matches in dfA or dfB, go to the next block
       if(nrow(block_A) == 0 | nrow(block_B) == 0){
         sim[[i]] <- NA
         next
       }
-
     } else{
-      # if not blocking, compute similarity matrix for all dfA and dfB
       block_A <- dfA
       block_B <- dfB
     }
-
-    # get a unique list of strings in each dataset
     strings_A <- unique(block_A[[by]])
     strings_B <- unique(block_B[[by]])
-
-    # compute cosine similarity matrix
     sim[[i]] <- get_similarity_matrix(embeddings, strings_A, strings_B)
   }
+}
 
   ## Step 3: Label Training Set -------------
   if(verbose){
