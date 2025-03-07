@@ -242,7 +242,7 @@ if(parallel) {
   gradient_estimate <- 0
   stop_threshold <- 0.01
   kernel_sd <- 0.2
-  batch_size <- 100
+  batch_size <- 1000
   stop_condition_met <- FALSE
   if(learner == 'ranger'){
     stop_threshold <- 0.1
@@ -324,7 +324,7 @@ if(parallel) {
   ## Step 6: Recall Search -----------------
 
   # 1. Identify records in A without in-block matches from B
-  # 2. Sample from kernel in batches of 100; label but do not update model.
+  # 2. Sample from kernel in batches of 1000; label but do not update model.
   # Loop 1-2 until either there are no remaining record pairs to label or you've hit
   # user-specified label maximum
 
