@@ -21,7 +21,8 @@ Imports:
     jsonlite,
     httr2,
     curl,
-    ranger
+    ranger,
+    parallel
 Depends: 
     R (>= 2.10)
 LazyData: true
