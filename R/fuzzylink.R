@@ -102,8 +102,10 @@ if(parallel) {
   cl <- parallel::makeCluster(n_cores)
   
   # Export necessary variables and functions to all workers
-  parallel::clusterExport(cl, c("embeddings", "by", "blocking.variables", "dfA", "dfB", "blocks", "get_similarity_matrix"))
-  
+  parallel::clusterExport(cl, c("by", "blocking.variables", "dfA", "dfB", "blocks"))
+  parallel::clusterExport(cl, "embeddings", envir = environment())
+  parallel::clusterExport(cl, "get_similarity_matrix")
+
   # Replace the sequential loop with parallel execution
   sim <- parallel::parLapply(cl, 1:nrow(blocks), function(i) {
     if(!is.null(blocking.variables)) {
