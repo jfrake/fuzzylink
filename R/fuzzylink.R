@@ -27,6 +27,7 @@
 #'                 by = 'name',
 #'                 record_type = 'US state government',
 #'                 instructions = 'The first dataset contains full US state names. The second dataset contains US postal codes.')
+#' @importFrom parallel detectCores
 fuzzylink <- function(dfA, dfB,
                       by, blocking.variables = NULL,
                       verbose = TRUE,
@@ -210,12 +211,17 @@ fuzzylink <- function(dfA, dfB,
         format(Sys.time(), '%X'),
         ')\n\n', sep = '')
   }
+  
+  # Calculate optimal number of cores (all available cores minus 1)
+  n_cores <- max(1, parallel::detectCores() - 1)
+  
   if(learner == 'ranger'){
     fit <- ranger::ranger(x = train |>
                             dplyr::filter(match %in% c('Yes', 'No')) |>
                             dplyr::select(sim, jw:soundex),
                           y = factor(train$match[train$match %in% c('Yes', 'No')]),
-                          probability = TRUE)
+                          probability = TRUE,
+                          num.threads = n_cores)  # Use multiprocessing
   } else{
     fit <- stats::glm(fmla,
                       data = train |>
@@ -286,7 +292,8 @@ fuzzylink <- function(dfA, dfB,
                               dplyr::filter(match %in% c('Yes', 'No')) |>
                               dplyr::select(sim, jw:soundex),
                             y = factor(train$match[train$match %in% c('Yes', 'No')]),
-                            probability = TRUE)
+                            probability = TRUE,
+                            num.threads = n_cores)  # Use multiprocessing
       train$match_probability <- stats::predict(fit, train)$predictions[,'Yes']
       # for RF, only estimate gradient on out-of-sample observations
       gradient_estimate[i] <- max(abs(old_probs - train$match_probability)[is.na(train$match)])
