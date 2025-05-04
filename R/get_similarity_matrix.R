@@ -31,8 +31,8 @@ get_similarity_matrix <- function(embeddings,
   A <- embeddings[strings_A, , drop = FALSE]
   B <- embeddings[strings_B, , drop = FALSE]
 
-  # use parallelized version of tcrossprod() for fast matrix multiplication
-  sim <- Rfast::Tcrossprod(A, B)
+  # use base R tcrossprod() to leverage OpenBLAS optimizations
+  sim <- tcrossprod(A, B)
   rownames(sim) <- strings_A
   colnames(sim) <- strings_B
 
