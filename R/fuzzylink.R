@@ -97,6 +97,9 @@ fuzzylink <- function(dfA, dfB,
         ')\n\n', sep = '')
   }
   sim <- list()
+  if(verbose && nrow(blocks) > 1){
+    pb <- txtProgressBar(min = 0, max = nrow(blocks), style = 3)
+  }
   for(i in 1:nrow(blocks)){
 
     if(!is.null(blocking.variables)){
@@ -138,6 +141,12 @@ fuzzylink <- function(dfA, dfB,
 
     # compute cosine similarity matrix
     sim[[i]] <- get_similarity_matrix(embeddings, strings_A, strings_B)
+    if(verbose && nrow(blocks) > 1){
+      setTxtProgressBar(pb, i)
+    }
+  }
+  if(verbose && nrow(blocks) > 1){
+    close(pb)
   }
 
   ## Step 3: Label Training Set -------------
